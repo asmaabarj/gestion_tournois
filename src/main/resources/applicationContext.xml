@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context.xsd
+                           http://www.springframework.org/schema/tx
+                           http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <context:component-scan base-package="org.gestion_tournois"/>
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <!-- DataSource Configuration -->
+    <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <property name="driverClassName" value="org.h2.Driver"/>
+        <property name="url" value="jdbc:h2:mem:gestion_tournois;DB_CLOSE_DELAY=-1"/>
+        <property name="username" value="user"/>
+        <property name="password" value=""/>
+    </bean>
+
+    <!-- EntityManagerFactory Configuration -->
+    <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <property name="dataSource" ref="dataSource"/>
+        <property name="packagesToScan" value="org.gestion_tournois.models"/>
+        <property name="jpaVendorAdapter">
+            <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
+        </property>
+        <property name="jpaProperties">
+            <props>
+                <prop key="hibernate.hbm2ddl.auto">update</prop>
+                <prop key="hibernate.dialect">org.hibernate.dialect.H2Dialect</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- Transaction Manager -->
+    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <property name="entityManagerFactory" ref="entityManagerFactory"/>
+    </bean>
+
+    <!-- DAOs -->
+    <bean id="joueurDao" class="org.gestion_tournois.repositories.impl.JoueurDaoImpl"/>
+    <bean id="equipeDao" class="org.gestion_tournois.repositories.impl.EquipeDaoImpl"/>
+    <bean id="tournoiDao" class="org.gestion_tournois.repositories.impl.TournoiDaoImpl"/>
+    <bean id="jeuDao" class="org.gestion_tournois.repositories.impl.JeuDaoImpl"/>
+
+    <!-- Services -->
+    <bean id="joueurService" class="org.gestion_tournois.services.JoueurService">
+        <constructor-arg ref="joueurDao"/>
+    </bean>
+    <bean id="equipeService" class="org.gestion_tournois.services.EquipeService">
+        <constructor-arg ref="equipeDao"/>
+        <constructor-arg ref="joueurDao"/>
+    </bean>
+    <bean id="tournoiService" class="org.gestion_tournois.services.TournoiService">
+        <constructor-arg ref="tournoiDao"/>
+        <constructor-arg ref="equipeDao"/>
+    </bean>
+    <bean id="jeuService" class="org.gestion_tournois.services.JeuService">
+        <constructor-arg ref="jeuDao"/>
+    </bean>
+
+    <!-- Controllers -->
+    <bean id="joueurController" class="org.gestion_tournois.controllers.JoueurController">
+        <constructor-arg ref="joueurService"/>
+    </bean>
+    <bean id="equipeController" class="org.gestion_tournois.controllers.EquipeController">
+        <constructor-arg ref="equipeService"/>
+    </bean>
+    <bean id="tournoiController" class="org.gestion_tournois.controllers.TournoiController">
+        <constructor-arg ref="tournoiService"/>
+    </bean>
+    <bean id="jeuController" class="org.gestion_tournois.controllers.JeuController">
+        <constructor-arg ref="jeuService"/>
+    </bean>
+
+    <bean id="consoleLogger" class="org.gestion_tournois.utils.MessageLogger"/>
+
+    <!-- H2 Web Server -->
+    <bean id="h2WebServer" class="org.h2.tools.Server" factory-method="createWebServer" init-method="start" destroy-method="stop">
+        <constructor-arg value="-web,-webAllowOthers,-webPort,8085"/>
+    </bean>
+
+</beans>
