@@ -3,6 +3,8 @@ package org.gestion_tournois.models;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.Max;
 
 @Entity
 @Table(name = "jeux")
@@ -14,15 +16,19 @@ public class Jeu {
 
     @NotNull
     @Size(min = 2, max = 100)
+    @Column(unique = true)
     private String nom;
 
-    @NotNull
+    @Min(value = 1)
+    @Max(value = 10)
     private int difficulte;
 
+    @Min(value = 1)
     private int dureeMoyenneMatch;
 
     // Constructors
-    public Jeu() {}
+    public Jeu() {
+    }
 
     public Jeu(String nom, int difficulte, int dureeMoyenneMatch) {
         this.nom = nom;
