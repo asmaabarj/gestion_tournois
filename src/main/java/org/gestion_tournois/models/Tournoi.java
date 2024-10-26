@@ -8,6 +8,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.gestion_tournois.models.enums.Status;
+
 @Entity
 @Table(name = "tournois")
 public class Tournoi {
@@ -37,18 +39,34 @@ public class Tournoi {
     @JoinTable(name = "tournoi_equipe", joinColumns = @JoinColumn(name = "tournoi_id"), inverseJoinColumns = @JoinColumn(name = "equipe_id"))
     private List<Equipe> equipes = new ArrayList<>();
 
-    private int dureeEstimee;
-    private int tempsCeremonie;
-    private int tempsPauseEntreMatchs;
+    @Column(nullable = false)
+    private int dureeEstimee = 0;
 
-    public Tournoi() {}
+    @Column(nullable = false)
+    private int dureeMoyenneMatch = 0;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Status statut = Status.PLANIFIE;
+
+    @Column(nullable = false)
+    private int tempsCeremonie = 0;
+
+    @Column(nullable = false)
+    private int tempsPauseEntreMatchs = 0;
+
+    public Tournoi() {
+    }
 
     public Tournoi(String titre, Jeu jeu, LocalDate dateDebut, LocalDate dateFin, int dureeMoyenneMatch) {
         this.titre = titre;
         this.jeu = jeu;
         this.dateDebut = dateDebut;
         this.dateFin = dateFin;
+        this.dureeMoyenneMatch = dureeMoyenneMatch;
+        this.statut = Status.PLANIFIE;
     }
+
 
     public Long getId() {
         return id;
@@ -114,14 +132,6 @@ public class Tournoi {
         this.dureeEstimee = dureeEstimee;
     }
 
-    public int getTempsCeremonie() {
-        return tempsCeremonie;
-    }
-
-    public void setTempsCeremonie(int tempsCeremonie) {
-        this.tempsCeremonie = tempsCeremonie;
-    }
-
     public int getTempsPauseEntreMatchs() {
         return tempsPauseEntreMatchs;
     }
@@ -130,18 +140,35 @@ public class Tournoi {
         this.tempsPauseEntreMatchs = tempsPauseEntreMatchs;
     }
 
-    @Override
-    public String toString() {
-        return "Tournoi{" +
-                "id=" + id +
-                ", titre='" + titre + '\'' +
-                ", jeu=" + jeu.getNom() +
-                ", dateDebut=" + dateDebut +
-                ", dateFin=" + dateFin +
-                ", nombreSpectateurs=" + nombreSpectateurs +
-                ", dureeEstimee=" + dureeEstimee +
-                ", tempsCeremonie=" + tempsCeremonie +
-                ", tempsPauseEntreMatchs=" + tempsPauseEntreMatchs +
-                '}';
+    public int getTempsCeremonie() {
+        return tempsCeremonie;
     }
+
+    public void setTempsCeremonie(int tempsCeremonie) {
+        this.tempsCeremonie = tempsCeremonie;
+    }
+
+    public Status getStatut() {
+        return statut;
+    }
+
+    public void setStatut(Status statut) {
+        this.statut = statut;
+    }
+
+    public int calculateEstimatedDuration() {
+        int nombreEquipes = this.equipes.size();
+        int difficulteJeu = this.jeu.getDifficulte();
+        int baseEstimation = (nombreEquipes * this.dureeMoyenneMatch * difficulteJeu) + this.tempsPauseEntreMatchs;
+        return baseEstimation + this.tempsCeremonie;
+    }
+
+    public int getDureeMoyenneMatch() {
+        return dureeMoyenneMatch;
+    }
+
+    public void setDureeMoyenneMatch(int dureeMoyenneMatch) {
+        this.dureeMoyenneMatch = dureeMoyenneMatch;
+    }
+
 }
