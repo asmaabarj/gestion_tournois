@@ -540,7 +540,7 @@ public class ConsoleUi {
             System.out.println("Entrez le nombre maximum d'équipes:");
             int nombreMaxEquipes = ValidationUtil.validerNombrePositif(scanner.nextLine());
 
-            Tournoi nouveauTournoi = tournoiController.creerTournoi(
+            Tournoi nouveauTournoi = tournoiController.create(
                 titre, jeuId, dateDebut, dateFin,
                 nombreSpectateurs, dureeMoyenneMatch, 
                 tempsPauseEntreMatchs, nombreMaxEquipes
