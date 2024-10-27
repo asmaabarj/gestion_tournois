@@ -1,5 +1,13 @@
 package org.gestion_tournois.repositories.impl;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+
 import org.gestion_tournois.models.Equipe;
 import org.gestion_tournois.models.Jeu;
 import org.gestion_tournois.models.Tournoi;
@@ -8,13 +16,6 @@ import org.gestion_tournois.repositories.interfaces.TournoiDao;
 import org.gestion_tournois.utils.MessageLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
-import java.util.List;
-import java.util.Optional;
-import java.util.Collections;
 
 public class TournoiDaoImpl implements TournoiDao {
 
@@ -84,15 +85,14 @@ public class TournoiDaoImpl implements TournoiDao {
     }
 
     @Override
-    public void addEquipe(Long tournoiId, Equipe equipe) {
+    public void addEquipe(Long tournoiId, Long equipeId) {
         try {
             Tournoi tournoi = entityManager.find(Tournoi.class, tournoiId);
-            if (tournoi != null) {
+            Equipe equipe = entityManager.find(Equipe.class, equipeId);
+            if (tournoi != null && equipe != null) {
                 tournoi.getEquipes().add(equipe);
                 entityManager.merge(tournoi);
                 MessageLogger.info("Équipe ajoutée au tournoi avec l'ID: " + tournoiId);
-            } else {
-                MessageLogger.warn("Tentative d'ajout d'une équipe à un tournoi inexistant avec l'ID: " + tournoiId);
             }
         } catch (Exception e) {
             LOGGER.error("Erreur lors de l'ajout de l'équipe au tournoi: ", e);
@@ -100,15 +100,14 @@ public class TournoiDaoImpl implements TournoiDao {
     }
 
     @Override
-    public void deleteEquipe(Long tournoiId, Equipe equipe) {
+    public void deleteEquipe(Long tournoiId, Long equipeId) {
         try {
             Tournoi tournoi = entityManager.find(Tournoi.class, tournoiId);
-            if (tournoi != null) {
+            Equipe equipe = entityManager.find(Equipe.class, equipeId);
+            if (tournoi != null && equipe != null) {
                 tournoi.getEquipes().remove(equipe);
                 entityManager.merge(tournoi);
                 MessageLogger.info("Équipe retirée du tournoi avec l'ID: " + tournoiId);
-            } else {
-                MessageLogger.warn("Tentative de retrait d'une équipe d'un tournoi inexistant avec l'ID: " + tournoiId);
             }
         } catch (Exception e) {
             LOGGER.error("Erreur lors du retrait de l'équipe du tournoi: ", e);

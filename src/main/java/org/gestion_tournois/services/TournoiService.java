@@ -1,12 +1,11 @@
 package org.gestion_tournois.services;
 
-import org.gestion_tournois.models.Equipe;
+import java.util.List;
+import java.util.Optional;
+
 import org.gestion_tournois.models.Tournoi;
 import org.gestion_tournois.models.enums.Status;
 import org.gestion_tournois.repositories.interfaces.TournoiDao;
-
-import java.util.List;
-import java.util.Optional;
 
 public class TournoiService {
 
@@ -36,12 +35,12 @@ public class TournoiService {
         return tournoiDao.getAll();
     }
 
-    public void addEquipe(Long tournoiId, Equipe equipe) {
-        tournoiDao.addEquipe(tournoiId, equipe);
+    public void addEquipe(Long tournoiId, Long equipeId) {
+        tournoiDao.addEquipe(tournoiId, equipeId);
     }
 
-    public void deleteEquipe(Long tournoiId, Equipe equipe) {
-        tournoiDao.deleteEquipe(tournoiId, equipe);
+    public void deleteEquipe(Long tournoiId, Long equipeId) {
+        tournoiDao.deleteEquipe(tournoiId, equipeId);
     }
 
     public int calculatedureeEstimeeTournoi(Long tournoiId) {
