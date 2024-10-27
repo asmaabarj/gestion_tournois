@@ -15,6 +15,7 @@ import org.gestion_tournois.models.Jeu;
 import org.gestion_tournois.models.Joueur;
 import org.gestion_tournois.models.Tournoi;
 import org.gestion_tournois.models.enums.Status;
+import org.gestion_tournois.utils.ValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -508,46 +509,54 @@ public class ConsoleUi {
         try {
             System.out.println("Entrez le titre du tournoi:");
             String titre = scanner.nextLine();
+            if (!ValidationUtil.validerNom(titre)) {
+                System.out.println("Titre invalide.");
+                return;
+            }
 
             System.out.println("Entrez l'ID du jeu:");
-            Long jeuId = scanner.nextLong();
-            scanner.nextLine();
+            Long jeuId = ValidationUtil.validerLong(scanner.nextLine());
 
-            System.out.println("Entrez la date de début (format: dd/MM/yyyy):");
-            String dateDebutStr = scanner.nextLine();
-            LocalDate dateDebut = LocalDate.parse(dateDebutStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            System.out.println("Entrez la date de début (YYYY-MM-DD):");
+            LocalDate dateDebut = ValidationUtil.validerDateFormat(scanner.nextLine());
 
-            System.out.println("Entrez la date de fin (format: dd/MM/yyyy):");
-            String dateFinStr = scanner.nextLine();
-            LocalDate dateFin = LocalDate.parse(dateFinStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            System.out.println("Entrez la date de fin (YYYY-MM-DD):");
+            LocalDate dateFin = ValidationUtil.validerDateFormat(scanner.nextLine());
 
-            System.out.println("Entrez le nombre de spectateurs attendus:");
-            int nombreSpectateurs = scanner.nextInt();
-            scanner.nextLine();
+            if (!ValidationUtil.validerDates(dateDebut, dateFin)) {
+                System.out.println("Les dates sont invalides. La date de fin doit être après la date de début.");
+                return;
+            }
 
-            System.out.println("Entrez la durée moyenne d'un match (en minutes):");
-            int dureeMoyenneMatch = scanner.nextInt();
-            scanner.nextLine();
+            System.out.println("Entrez le nombre de spectateurs:");
+            int nombreSpectateurs = ValidationUtil.validerNombrePositif(scanner.nextLine());
+
+            System.out.println("Entrez la durée moyenne des matchs (en minutes):");
+            int dureeMoyenneMatch = ValidationUtil.validerNombrePositif(scanner.nextLine());
 
             System.out.println("Entrez le temps de pause entre les matchs (en minutes):");
-            int tempsPauseEntreMatchs = scanner.nextInt();
-            scanner.nextLine();
+            int tempsPauseEntreMatchs = ValidationUtil.validerNombrePositif(scanner.nextLine());
 
             System.out.println("Entrez le nombre maximum d'équipes:");
-            int nombreMaxEquipes = scanner.nextInt();
-            scanner.nextLine();
+            int nombreMaxEquipes = ValidationUtil.validerNombrePositif(scanner.nextLine());
 
-            Tournoi nouveauTournoi = tournoiController.create(titre, jeuId, dateDebut, dateFin,
-                nombreSpectateurs, dureeMoyenneMatch, tempsPauseEntreMatchs, nombreMaxEquipes);
-            
+            Tournoi nouveauTournoi = tournoiController.creerTournoi(
+                titre, jeuId, dateDebut, dateFin,
+                nombreSpectateurs, dureeMoyenneMatch, 
+                tempsPauseEntreMatchs, nombreMaxEquipes
+            );
+
             if (nouveauTournoi != null) {
                 System.out.println("Tournoi créé avec succès. ID: " + nouveauTournoi.getId());
             } else {
                 System.out.println("Échec de la création du tournoi.");
             }
+
+        } catch (IllegalArgumentException e) {
+            System.out.println("Erreur de validation: " + e.getMessage());
         } catch (Exception e) {
             LOGGER.error("Erreur lors de la création du tournoi", e);
-            System.out.println("Erreur lors de la création du tournoi.");
+            System.out.println("Une erreur est survenue lors de la création du tournoi.");
         }
     }
 
