@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.centrale</groupId>
-    <artifactId>Naoufal_Labrihmi_S3_B1_E-Sport</artifactId>
+    <artifactId>gestion_tournois</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
