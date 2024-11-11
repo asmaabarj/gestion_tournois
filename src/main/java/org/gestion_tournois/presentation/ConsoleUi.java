@@ -1,21 +1,21 @@
 package org.gestion_tournois.presentation;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
-import org.gestion_tournois.controllers.EquipeController;
-import org.gestion_tournois.controllers.JeuController;
-import org.gestion_tournois.controllers.JoueurController;
-import org.gestion_tournois.controllers.TournoiController;
-import org.gestion_tournois.models.Equipe;
-import org.gestion_tournois.models.Jeu;
-import org.gestion_tournois.models.Joueur;
-import org.gestion_tournois.models.Tournoi;
-import org.gestion_tournois.models.enums.Status;
-import org.gestion_tournois.utils.ValidationUtil;
+import org.gestion_tournois.controller.EquipeController;
+import org.gestion_tournois.controller.JeuController;
+import org.gestion_tournois.controller.JoueurController;
+import org.gestion_tournois.controller.TournoiController;
+import org.gestion_tournois.model.Equipe;
+import org.gestion_tournois.model.Jeu;
+import org.gestion_tournois.model.Joueur;
+import org.gestion_tournois.model.Tournoi;
+import org.gestion_tournois.model.enums.TournoiStatus;
+import org.gestion_tournois.util.ConsoleLogger;
+import org.gestion_tournois.util.ValidationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -27,893 +27,1184 @@ public class ConsoleUi {
     private final EquipeController equipeController;
     private final TournoiController tournoiController;
     private final JeuController jeuController;
+    private final ConsoleLogger consoleLogger;
     private final Scanner scanner;
 
     public ConsoleUi(JoueurController joueurController, EquipeController equipeController,
-                    TournoiController tournoiController, JeuController jeuController) {
+                     TournoiController tournoiController, JeuController jeuController,
+                     ConsoleLogger consoleLogger) {
         this.joueurController = joueurController;
         this.equipeController = equipeController;
         this.tournoiController = tournoiController;
         this.jeuController = jeuController;
+        this.consoleLogger = consoleLogger;
         this.scanner = new Scanner(System.in);
-        LOGGER.info("ConsoleUi initialisée");
     }
 
-    // Menu Principal
+    public static void main(String[] args) {
+        LOGGER.info("Démarrage de l'application");
+        ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
+        org.h2.tools.Server h2WebServer = context.getBean("h2WebServer", org.h2.tools.Server.class);
+        String h2ConsoleUrl = h2WebServer.getURL();
+        LOGGER.info("H2 Console URL: {}", h2ConsoleUrl);
+
+        ConsoleUi console = context.getBean(ConsoleUi.class);
+        console.afficherMenuPrincipal();
+        LOGGER.info("Fermeture de l'application");
+    }
+
     public void afficherMenuPrincipal() {
         boolean continuer = true;
         while (continuer) {
-            LOGGER.info("Affichage du menu principal");
-            System.out.println("\n=== Menu Principal ===");
-            System.out.println("1. Gestion des joueurs");
-            System.out.println("2. Gestion des équipes");
-            System.out.println("3. Gestion des tournois");
-            System.out.println("4. Gestion des jeux");
-            System.out.println("0. Quitter");
-            System.out.print("Votre choix : ");
+            consoleLogger.afficherMessage("Menu principal:");
+            consoleLogger.afficherMessage("1. Gestion des joueurs");
+            consoleLogger.afficherMessage("2. Gestion des équipes");
+            consoleLogger.afficherMessage("3. Gestion des tournois");
+            consoleLogger.afficherMessage("4. Gestion des jeux");
+            consoleLogger.afficherMessage("0. Quitter");
+            consoleLogger.afficherMessage("Choisissez une option:");
 
-            try {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
+            int choix = scanner.nextInt();
+            scanner.nextLine(); // Consommer la nouvelle ligne
 
-                switch (choix) {
-                    case 1:
-                        gererMenuJoueurs();
-                        break;
-                    case 2:
-                        gererMenuEquipes();
-                        break;
-                    case 3:
-                        gererMenuTournois();
-                        break;
-                    case 4:
-                        gererMenuJeux();
-                        break;
-                    case 0:
-                        continuer = false;
-                        LOGGER.info("Fermeture de l'application");
-                        break;
-                    default:
-                        System.out.println("Option invalide");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Erreur dans le menu principal", e);
-                scanner.nextLine();
-                System.out.println("Erreur de saisie. Veuillez réessayer.");
+            switch (choix) {
+                case 1:
+                    afficherMenuJoueur();
+                    break;
+                case 2:
+                    afficherMenuEquipe();
+                    break;
+                case 3:
+                    afficherMenuTournoi();
+                    break;
+                case 4:
+                    afficherMenuJeu();
+                    break;
+                case 0:
+                    continuer = false;
+                    break;
+                default:
+                    consoleLogger.afficherErreur("Option invalide. Veuillez réessayer.");
             }
         }
+        scanner.close();
     }
 
-    // Gestion des Joueurs
-    private void gererMenuJoueurs() {
+    private void afficherMenuJoueur() {
         boolean continuer = true;
         while (continuer) {
-            System.out.println("\n=== Gestion des Joueurs ===");
-            System.out.println("1. Inscrire un joueur");
-            System.out.println("2. Modifier un joueur");
-            System.out.println("3. Supprimer un joueur");
-            System.out.println("4. Afficher un joueur");
-            System.out.println("5. Afficher tous les joueurs");
-            System.out.println("6. Afficher les joueurs d'une équipe");
-            System.out.println("0. Retour");
+            consoleLogger.afficherMessage("Menu Joueur:");
+            consoleLogger.afficherMessage("1. Inscrire un joueur");
+            consoleLogger.afficherMessage("2. Modifier un joueur");
+            consoleLogger.afficherMessage("3. Supprimer un joueur");
+            consoleLogger.afficherMessage("4. Afficher un joueur");
+            consoleLogger.afficherMessage("5. Afficher tous les joueurs");
+            consoleLogger.afficherMessage("6. Afficher les joueurs d'une équipe");
+            consoleLogger.afficherMessage("0. Retour au menu principal");
+            consoleLogger.afficherMessage("Choisissez une option:");
 
-            try {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
+            int choix = scanner.nextInt();
+            scanner.nextLine();
 
-                switch (choix) {
-                    case 1:
-                        inscrireJoueur();
-                        break;
-                    case 2:
-                        modifierJoueur();
-                        break;
-                    case 3:
-                        supprimerJoueur();
-                        break;
-                    case 4:
-                        afficherJoueur();
-                        break;
-                    case 5:
-                        afficherTousJoueurs();
-                        break;
-                    case 6:
-                        afficherJoueursParEquipe();
-                        break;
-                    case 0:
-                        continuer = false;
-                        break;
-                    default:
-                        System.out.println("Option invalide");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Erreur dans le menu joueurs", e);
-                scanner.nextLine();
-                System.out.println("Erreur de saisie. Veuillez réessayer.");
+            switch (choix) {
+                case 1:
+                    inscrireJoueur();
+                    break;
+                case 2:
+                    modifierJoueur();
+                    break;
+                case 3:
+                    supprimerJoueur();
+                    break;
+                case 4:
+                    afficherJoueur();
+                    break;
+                case 5:
+                    afficherTousJoueurs();
+                    break;
+                case 6:
+                    afficherJoueursParEquipe();
+                    break;
+                case 0:
+                    continuer = false;
+                    break;
+                default:
+                    consoleLogger.afficherErreur("Option invalide. Veuillez réessayer.");
             }
         }
     }
 
     private void inscrireJoueur() {
-        try {
-            System.out.println("Entrez le pseudo du joueur:");
-            String pseudo = scanner.nextLine();
-            System.out.println("Entrez l'âge du joueur:");
-            int age = scanner.nextInt();
-            scanner.nextLine();
-
-            Joueur nouveauJoueur = joueurController.inscrireJoueur(pseudo, age);
-            if (nouveauJoueur != null) {
-                System.out.println("Joueur inscrit avec succès. ID: " + nouveauJoueur.getId());
-            } else {
-                System.out.println("Échec de l'inscription du joueur.");
+        String pseudo;
+        int age;
+        
+        do {
+            consoleLogger.afficherMessage("Entrez le pseudo du joueur (3-20 caractères, lettres, chiffres, - et _ uniquement):");
+            pseudo = scanner.nextLine();
+            if (!ValidationUtil.validerPseudo(pseudo)) {
+                consoleLogger.afficherErreur("Pseudo invalide. Veuillez réessayer.");
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'inscription du joueur", e);
-            System.out.println("Erreur lors de l'inscription du joueur.");
+        } while (!ValidationUtil.validerPseudo(pseudo));
+
+        do {
+            consoleLogger.afficherMessage("Entrez l'âge du joueur (12-99 ans):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            age = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerAge(age)) {
+                consoleLogger.afficherErreur("Âge invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerAge(age));
+
+        Joueur nouveauJoueur = joueurController.inscrireJoueur(pseudo, age);
+        if (nouveauJoueur != null) {
+            consoleLogger.afficherMessage("Joueur inscrit avec succès. ID: " + nouveauJoueur.getId());
+        } else {
+            consoleLogger.afficherErreur("Échec de l'inscription du joueur.");
         }
     }
 
     private void modifierJoueur() {
-        try {
-            System.out.println("Entrez l'ID du joueur à modifier:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        Long id;
+        String nouveauPseudo;
+        int nouvelAge;
 
-            System.out.println("Entrez le nouveau pseudo:");
-            String nouveauPseudo = scanner.nextLine();
-            System.out.println("Entrez le nouvel âge:");
-            int nouvelAge = scanner.nextInt();
-            scanner.nextLine();
-
-            Joueur joueurModifie = joueurController.modifierJoueur(id, nouveauPseudo, nouvelAge);
-            if (joueurModifie != null) {
-                System.out.println("Joueur modifié avec succès.");
-            } else {
-                System.out.println("Joueur non trouvé.");
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du joueur à modifier:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la modification du joueur", e);
-            System.out.println("Erreur lors de la modification du joueur.");
+            id = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
+
+        do {
+            consoleLogger.afficherMessage("Entrez le nouveau pseudo du joueur (3-20 caractères):");
+            nouveauPseudo = scanner.nextLine();
+            if (!ValidationUtil.validerPseudo(nouveauPseudo)) {
+                consoleLogger.afficherErreur("Pseudo invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerPseudo(nouveauPseudo));
+
+        do {
+            consoleLogger.afficherMessage("Entrez le nouvel âge du joueur (12-99 ans):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            nouvelAge = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerAge(nouvelAge)) {
+                consoleLogger.afficherErreur("Âge invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerAge(nouvelAge));
+
+        Joueur joueurModifie = joueurController.modifierJoueur(id, nouveauPseudo, nouvelAge);
+        if (joueurModifie != null) {
+            consoleLogger.afficherMessage("Joueur modifié avec succès.");
+        } else {
+            consoleLogger.afficherErreur("Échec de la modification du joueur.");
         }
     }
 
     private void supprimerJoueur() {
-        try {
-            System.out.println("Entrez l'ID du joueur à supprimer:");
-            Long id = scanner.nextLong();
+        Long id;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du joueur à supprimer:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            id = scanner.nextLong();
             scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
 
-            joueurController.supprimerJoueur(id);
-            System.out.println("Joueur supprimé avec succès.");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la suppression du joueur", e);
-            System.out.println("Erreur lors de la suppression du joueur.");
+        Optional<Joueur> joueurOptional = joueurController.obtenirJoueur(id);
+        if (joueurOptional.isPresent()) {
+            consoleLogger.afficherMessage("Êtes-vous sûr de vouloir supprimer le joueur " + 
+                joueurOptional.get().getPseudo() + "? (O/N)");
+            String confirmation = scanner.nextLine();
+            if (confirmation.equalsIgnoreCase("O")) {
+                joueurController.supprimerJoueur(id);
+                consoleLogger.afficherMessage("Joueur supprimé avec succès.");
+            } else {
+                consoleLogger.afficherMessage("Suppression annulée.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Joueur non trouvé.");
         }
     }
 
     private void afficherJoueur() {
-        try {
-            System.out.println("Entrez l'ID du joueur à afficher:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
-
-            Optional<Joueur> joueurOpt = joueurController.obtenirJoueur(id);
-            if (joueurOpt.isPresent()) {
-                Joueur joueur = joueurOpt.get();
-                System.out.println("ID: " + joueur.getId());
-                System.out.println("Pseudo: " + joueur.getPseudo());
-                System.out.println("Âge: " + joueur.getAge());
-            } else {
-                System.out.println("Joueur non trouvé.");
+        Long id;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du joueur à afficher:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage du joueur", e);
-            System.out.println("Erreur lors de l'affichage du joueur.");
+            id = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
+
+        Optional<Joueur> joueurOptional = joueurController.obtenirJoueur(id);
+        if (joueurOptional.isPresent()) {
+            Joueur joueur = joueurOptional.get();
+            consoleLogger.afficherMessage("Détails du joueur:");
+            consoleLogger.afficherMessage("ID: " + joueur.getId());
+            consoleLogger.afficherMessage("Pseudo: " + joueur.getPseudo());
+            consoleLogger.afficherMessage("Âge: " + joueur.getAge());
+        } else {
+            consoleLogger.afficherErreur("Joueur non trouvé.");
         }
     }
 
     private void afficherTousJoueurs() {
-        try {
-            List<Joueur> joueurs = joueurController.obtenirTousJoueurs();
-            if (!joueurs.isEmpty()) {
-                System.out.println("Liste des joueurs:");
-                for (Joueur joueur : joueurs) {
-                    System.out.println("ID: " + joueur.getId() + ", Pseudo: " + joueur.getPseudo() + ", Âge: " + joueur.getAge());
-                }
-            } else {
-                System.out.println("Aucun joueur trouvé.");
+        List<Joueur> joueurs = joueurController.obtenirTousJoueurs();
+        if (!joueurs.isEmpty()) {
+            consoleLogger.afficherMessage("Liste de tous les joueurs:");
+            for (Joueur joueur : joueurs) {
+                consoleLogger.afficherMessage("ID: " + joueur.getId() + ", Pseudo: " + joueur.getPseudo() + ", Âge: " + joueur.getAge());
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage des joueurs", e);
-            System.out.println("Erreur lors de l'affichage des joueurs.");
+        } else {
+            consoleLogger.afficherMessage("Aucun joueur trouvé.");
         }
     }
 
     private void afficherJoueursParEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe:");
-            Long equipeId = scanner.nextLong();
-            scanner.nextLine();
-
-            List<Joueur> joueurs = joueurController.obtenirJoueursParEquipe(equipeId);
-            if (!joueurs.isEmpty()) {
-                System.out.println("Joueurs de l'équipe " + equipeId + ":");
-                for (Joueur joueur : joueurs) {
-                    System.out.println("ID: " + joueur.getId() + ", Pseudo: " + joueur.getPseudo() + ", Âge: " + joueur.getAge());
-                }
-            } else {
-                System.out.println("Aucun joueur trouvé pour cette équipe.");
+        Long equipeId;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID de l'équipe:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage des joueurs par équipe", e);
-            System.out.println("Erreur lors de l'affichage des joueurs par équipe.");
+            equipeId = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(equipeId)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(equipeId));
+
+        List<Joueur> joueurs = joueurController.obtenirJoueursParEquipe(equipeId);
+        if (!joueurs.isEmpty()) {
+            consoleLogger.afficherMessage("Joueurs de l'équipe (ID: " + equipeId + "):");
+            for (Joueur joueur : joueurs) {
+                consoleLogger.afficherMessage("ID: " + joueur.getId() + ", Pseudo: " + joueur.getPseudo() + ", Âge: " + joueur.getAge());
+            }
+        } else {
+            consoleLogger.afficherMessage("Aucun joueur trouvé pour cette équipe.");
         }
     }
 
-    private void gererMenuEquipes() {
+    private void afficherMenuEquipe() {
         boolean continuer = true;
         while (continuer) {
-            System.out.println("\n=== Gestion des Équipes ===");
-            System.out.println("1. Créer une équipe");
-            System.out.println("2. Modifier une équipe");
-            System.out.println("3. Supprimer une équipe");
-            System.out.println("4. Afficher une équipe");
-            System.out.println("5. Afficher toutes les équipes");
-            System.out.println("6. Ajouter un joueur à une équipe");
-            System.out.println("7. Retirer un joueur d'une équipe");
-            System.out.println("0. Retour");
+            consoleLogger.afficherMessage("Menu Équipe:");
+            consoleLogger.afficherMessage("1. Créer une équipe");
+            consoleLogger.afficherMessage("2. Modifier une équipe");
+            consoleLogger.afficherMessage("3. Supprimer une équipe");
+            consoleLogger.afficherMessage("4. Afficher une équipe");
+            consoleLogger.afficherMessage("5. Afficher toutes les équipes");
+            consoleLogger.afficherMessage("6. Ajouter un joueur à une équipe");
+            consoleLogger.afficherMessage("7. Retirer un joueur d'une équipe");
+            consoleLogger.afficherMessage("0. Retour au menu principal");
+            consoleLogger.afficherMessage("Choisissez une option:");
 
-            try {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
+            int choix = scanner.nextInt();
+            scanner.nextLine();
 
-                switch (choix) {
-                    case 1:
-                        creerEquipe();
-                        break;
-                    case 2:
-                        modifierEquipe();
-                        break;
-                    case 3:
-                        supprimerEquipe();
-                        break;
-                    case 4:
-                        afficherEquipe();
-                        break;
-                    case 5:
-                        afficherToutesEquipes();
-                        break;
-                    case 6:
-                        ajouterJoueurAEquipe();
-                        break;
-                    case 7:
-                        retirerJoueurDeEquipe();
-                        break;
-                    case 0:
-                        continuer = false;
-                        break;
-                    default:
-                        System.out.println("Option invalide");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Erreur dans le menu équipes", e);
-                scanner.nextLine();
-                System.out.println("Erreur de saisie. Veuillez réessayer.");
+            switch (choix) {
+                case 1:
+                    creerEquipe();
+                    break;
+                case 2:
+                    modifierEquipe();
+                    break;
+                case 3:
+                    supprimerEquipe();
+                    break;
+                case 4:
+                    afficherEquipe();
+                    break;
+                case 5:
+                    afficherToutesEquipes();
+                    break;
+                case 6:
+                    ajouterJoueurAEquipe();
+                    break;
+                case 7:
+                    retirerJoueurDeEquipe();
+                    break;
+                case 0:
+                    continuer = false;
+                    break;
+                default:
+                    consoleLogger.afficherErreur("Option invalide. Veuillez réessayer.");
             }
         }
     }
 
     private void creerEquipe() {
-        try {
-            System.out.println("Entrez le nom de l'équipe:");
-            String nom = scanner.nextLine();
-
-            Equipe nouvelleEquipe = equipeController.creerEquipe(nom);
-            if (nouvelleEquipe != null) {
-                System.out.println("Équipe créée avec succès. ID: " + nouvelleEquipe.getId());
-            } else {
-                System.out.println("Échec de la création de l'équipe.");
+        String nom;
+        do {
+            consoleLogger.afficherMessage("Entrez le nom de l'équipe (2-30 caractères):");
+            nom = scanner.nextLine();
+            if (!ValidationUtil.validerNomEquipe(nom)) {
+                consoleLogger.afficherErreur("Nom d'équipe invalide. Veuillez réessayer.");
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la création de l'équipe", e);
-            System.out.println("Erreur lors de la création de l'équipe.");
+        } while (!ValidationUtil.validerNomEquipe(nom));
+
+        Equipe equipeCreee = equipeController.creerEquipe(nom);
+        if (equipeCreee != null) {
+            consoleLogger.afficherMessage("Équipe créée avec succès. ID: " + equipeCreee.getId());
+        } else {
+            consoleLogger.afficherErreur("Erreur lors de la création de l'équipe.");
         }
     }
 
-    // Suite des méthodes de gestion des équipes
     private void modifierEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe à modifier:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        Long id;
+        String nouveauNom;
 
-            System.out.println("Entrez le nouveau nom:");
-            String nouveauNom = scanner.nextLine();
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID de l'équipe à modifier:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            id = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
+
+        Optional<Equipe> equipeOptional = equipeController.obtenirEquipe(id);
+        if (equipeOptional.isPresent()) {
+            do {
+                consoleLogger.afficherMessage("Entrez le nouveau nom de l'équipe (2-30 caractères):");
+                nouveauNom = scanner.nextLine();
+                if (!ValidationUtil.validerNomEquipe(nouveauNom)) {
+                    consoleLogger.afficherErreur("Nom d'équipe invalide. Veuillez réessayer.");
+                }
+            } while (!ValidationUtil.validerNomEquipe(nouveauNom));
 
             Equipe equipeModifiee = equipeController.modifierEquipe(id, nouveauNom);
             if (equipeModifiee != null) {
-                System.out.println("Équipe modifiée avec succès.");
+                consoleLogger.afficherMessage("Équipe modifiée avec succès.");
             } else {
-                System.out.println("Équipe non trouvée.");
+                consoleLogger.afficherErreur("Erreur lors de la modification de l'équipe.");
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la modification de l'équipe", e);
-            System.out.println("Erreur lors de la modification de l'équipe.");
+        } else {
+            consoleLogger.afficherErreur("Équipe non trouvée.");
         }
     }
 
     private void supprimerEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe à supprimer:");
-            Long id = scanner.nextLong();
+        Long id;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID de l'équipe à supprimer:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            id = scanner.nextLong();
             scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
 
-            equipeController.supprimerEquipe(id);
-            System.out.println("Équipe supprimée avec succès.");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la suppression de l'équipe", e);
-            System.out.println("Erreur lors de la suppression de l'équipe.");
+        Optional<Equipe> equipeOptional = equipeController.obtenirEquipe(id);
+        if (equipeOptional.isPresent()) {
+            consoleLogger.afficherMessage("Êtes-vous sûr de vouloir supprimer l'équipe " + 
+                equipeOptional.get().getNom() + "? (O/N)");
+            String confirmation = scanner.nextLine();
+            if (confirmation.equalsIgnoreCase("O")) {
+                equipeController.supprimerEquipe(id);
+                consoleLogger.afficherMessage("Équipe supprimée avec succès.");
+            } else {
+                consoleLogger.afficherMessage("Suppression annulée.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Équipe non trouvée.");
         }
     }
 
     private void afficherEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe à afficher:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        consoleLogger.afficherMessage("Affichage d'une équipe");
+        consoleLogger.afficherMessage("Entrez l'ID de l'équipe à afficher:");
+        Long id = scanner.nextLong();
+        scanner.nextLine();
 
-            Optional<Equipe> equipeOpt = equipeController.obtenirEquipe(id);
-            if (equipeOpt.isPresent()) {
-                Equipe equipe = equipeOpt.get();
-                System.out.println("ID: " + equipe.getId());
-                System.out.println("Nom: " + equipe.getNom());
-                System.out.println("Joueurs:");
-                for (Joueur joueur : equipe.getJoueurs()) {
-                    System.out.println("- " + joueur.getPseudo());
-                }
-            } else {
-                System.out.println("Équipe non trouvée.");
+        Optional<Equipe> equipeOptionnelle = equipeController.obtenirEquipe(id);
+        if (equipeOptionnelle.isPresent()) {
+            Equipe equipe = equipeOptionnelle.get();
+            consoleLogger.afficherMessage("ID: " + equipe.getId());
+            consoleLogger.afficherMessage("Nom: " + equipe.getNom());
+            consoleLogger.afficherMessage("Classement: " + equipe.getClassement());
+            consoleLogger.afficherMessage("Joueurs:");
+            for (Joueur joueur : equipe.getJoueurs()) {
+                consoleLogger.afficherMessage("  - " + joueur.getPseudo());
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage de l'équipe", e);
-            System.out.println("Erreur lors de l'affichage de l'équipe.");
+        } else {
+            consoleLogger.afficherErreur("Équipe non trouvée.");
         }
     }
 
     private void afficherToutesEquipes() {
-        try {
-            List<Equipe> equipes = equipeController.obtenirToutesEquipes();
-            if (!equipes.isEmpty()) {
-                System.out.println("Liste des équipes:");
-                for (Equipe equipe : equipes) {
-                    System.out.println("ID: " + equipe.getId() + ", Nom: " + equipe.getNom());
-                }
-            } else {
-                System.out.println("Aucune équipe trouvée.");
+        consoleLogger.afficherMessage("Liste de toutes les équipes:");
+        List<Equipe> equipes = equipeController.obtenirToutesEquipes();
+        if (!equipes.isEmpty()) {
+            for (Equipe equipe : equipes) {
+                consoleLogger.afficherMessage("ID: " + equipe.getId() + ", Nom: " + equipe.getNom() + ", Classement: "
+                        + equipe.getClassement());
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage des équipes", e);
-            System.out.println("Erreur lors de l'affichage des équipes.");
+        } else {
+            consoleLogger.afficherMessage("Aucune équipe trouvée.");
         }
     }
 
     private void ajouterJoueurAEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe:");
-            Long equipeId = scanner.nextLong();
-            System.out.println("Entrez l'ID du joueur à ajouter:");
-            Long joueurId = scanner.nextLong();
-            scanner.nextLine();
+        consoleLogger.afficherMessage("Ajout d'un joueur à une équipe");
+        consoleLogger.afficherMessage("Entrez l'ID de l'équipe:");
+        Long equipeId = scanner.nextLong();
+        consoleLogger.afficherMessage("Entrez l'ID du joueur à ajouter:");
+        Long joueurId = scanner.nextLong();
+        scanner.nextLine();
 
-            Optional<Joueur> joueurOpt = joueurController.obtenirJoueur(joueurId);
-            if (joueurOpt.isPresent()) {
-                Joueur joueur = joueurOpt.get();
-                equipeController.ajouterJoueurAEquipe(equipeId, joueur);
-                System.out.println("Joueur ajouté à l'équipe avec succès.");
-            } else {
-                System.out.println("Joueur non trouvé.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'ajout du joueur à l'équipe", e);
-            System.out.println("Erreur lors de l'ajout du joueur à l'équipe.");
-        }
+        equipeController.ajouterJoueurAEquipe(equipeId, joueurId);
+        consoleLogger.afficherMessage("Joueur ajouté à l'équipe avec succès (si les deux existent).");
     }
 
     private void retirerJoueurDeEquipe() {
-        try {
-            System.out.println("Entrez l'ID de l'équipe:");
-            Long equipeId = scanner.nextLong();
-            System.out.println("Entrez l'ID du joueur à retirer:");
-            Long joueurId = scanner.nextLong();
+        consoleLogger.afficherMessage("Retrait d'un joueur d'une équipe");
+        consoleLogger.afficherMessage("Entrez l'ID de l'équipe:");
+        Long equipeId = scanner.nextLong();
+        consoleLogger.afficherMessage("Entrez l'ID du joueur à retirer:");
+        Long joueurId = scanner.nextLong();
+        scanner.nextLine();
+
+        equipeController.retirerJoueurDeEquipe(equipeId, joueurId);
+        consoleLogger.afficherMessage("Joueur retiré de l'équipe avec succès (si les deux existent).");
+    }
+
+    private void afficherMenuJeu() {
+        boolean continuer = true;
+        while (continuer) {
+            consoleLogger.afficherMessage("Menu Jeu:");
+            consoleLogger.afficherMessage("1. Créer un jeu");
+            consoleLogger.afficherMessage("2. Modifier un jeu");
+            consoleLogger.afficherMessage("3. Supprimer un jeu");
+            consoleLogger.afficherMessage("4. Afficher un jeu");
+            consoleLogger.afficherMessage("5. Afficher tous les jeux");
+            consoleLogger.afficherMessage("0. Retour au menu principal");
+            consoleLogger.afficherMessage("Choisissez une option:");
+
+            int choix = scanner.nextInt();
             scanner.nextLine();
 
-            // Récupérer d'abord le joueur
-            Optional<Joueur> joueurOpt = joueurController.obtenirJoueur(joueurId);
-            if (joueurOpt.isPresent()) {
-                Joueur joueur = joueurOpt.get();
-                equipeController.retirerJoueurDeEquipe(equipeId, joueur);
-                System.out.println("Joueur retiré de l'équipe avec succès.");
-            } else {
-                System.out.println("Joueur non trouvé.");
+            switch (choix) {
+                case 1:
+                    creerJeu();
+                    break;
+                case 2:
+                    modifierJeu();
+                    break;
+                case 3:
+                    supprimerJeu();
+                    break;
+                case 4:
+                    afficherJeu();
+                    break;
+                case 5:
+                    afficherTousJeux();
+                    break;
+                case 0:
+                    continuer = false;
+                    break;
+                default:
+                    consoleLogger.afficherErreur("Option invalide. Veuillez réessayer.");
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors du retrait du joueur de l'équipe", e);
-            System.out.println("Erreur lors du retrait du joueur de l'équipe.");
         }
     }
 
-    // Gestion des Tournois
-    private void gererMenuTournois() {
+    private void creerJeu() {
+        String nom;
+        int difficulte;
+        int dureeMoyenneMatch;
+
+        do {
+            consoleLogger.afficherMessage("Entrez le nom du jeu (2-50 caractères):");
+            nom = scanner.nextLine();
+            if (!ValidationUtil.validerNomJeu(nom)) {
+                consoleLogger.afficherErreur("Nom du jeu invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerNomJeu(nom));
+
+        do {
+            consoleLogger.afficherMessage("Entrez la difficulté du jeu (1-10):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            difficulte = scanner.nextInt();
+            if (!ValidationUtil.validerDifficulte(difficulte)) {
+                consoleLogger.afficherErreur("Difficulté invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerDifficulte(difficulte));
+
+        do {
+            consoleLogger.afficherMessage("Entrez la durée moyenne d'un match (en minutes, max 360):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            dureeMoyenneMatch = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerDuree(dureeMoyenneMatch)) {
+                consoleLogger.afficherErreur("Durée moyenne invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerDuree(dureeMoyenneMatch));
+
+        Jeu nouveauJeu = jeuController.creerJeu(nom, difficulte, dureeMoyenneMatch);
+        if (nouveauJeu != null) {
+            consoleLogger.afficherMessage("Jeu créé avec succès. ID: " + nouveauJeu.getId());
+        } else {
+            consoleLogger.afficherErreur("Erreur lors de la création du jeu.");
+        }
+    }
+
+    private void modifierJeu() {
+        Long id;
+        String nouveauNom;
+        int nouvelleDifficulte;
+        int nouvelleDureeMoyenneMatch;
+
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du jeu à modifier:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            id = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
+
+        Optional<Jeu> jeuOptional = jeuController.obtenirJeu(id);
+        if (jeuOptional.isPresent()) {
+            do {
+                consoleLogger.afficherMessage("Entrez le nouveau nom du jeu (ou appuyez sur Entrée pour garder l'ancien):");
+                nouveauNom = scanner.nextLine();
+                if (!nouveauNom.isEmpty() && !ValidationUtil.validerNomJeu(nouveauNom)) {
+                    consoleLogger.afficherErreur("Nom du jeu invalide. Veuillez réessayer.");
+                    continue;
+                }
+                if (nouveauNom.isEmpty()) {
+                    nouveauNom = jeuOptional.get().getNom();
+                }
+                break;
+            } while (true);
+
+            do {
+                consoleLogger.afficherMessage("Entrez la nouvelle difficulté (1-10) ou -1 pour garder l'ancienne:");
+                while (!scanner.hasNextInt()) {
+                    consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                    scanner.next();
+                }
+                nouvelleDifficulte = scanner.nextInt();
+                if (nouvelleDifficulte == -1) {
+                    nouvelleDifficulte = jeuOptional.get().getDifficulte();
+                    break;
+                }
+                if (!ValidationUtil.validerDifficulte(nouvelleDifficulte)) {
+                    consoleLogger.afficherErreur("Difficulté invalide. Veuillez réessayer.");
+                    continue;
+                }
+                break;
+            } while (true);
+
+            do {
+                consoleLogger.afficherMessage("Entrez la nouvelle durée moyenne (en minutes, max 360) ou -1 pour garder l'ancienne:");
+                while (!scanner.hasNextInt()) {
+                    consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                    scanner.next();
+                }
+                nouvelleDureeMoyenneMatch = scanner.nextInt();
+                scanner.nextLine();
+                if (nouvelleDureeMoyenneMatch == -1) {
+                    nouvelleDureeMoyenneMatch = jeuOptional.get().getDureeMoyenneMatch();
+                    break;
+                }
+                if (!ValidationUtil.validerDuree(nouvelleDureeMoyenneMatch)) {
+                    consoleLogger.afficherErreur("Durée moyenne invalide. Veuillez réessayer.");
+                    continue;
+                }
+                break;
+            } while (true);
+
+            Jeu jeuModifie = jeuController.modifierJeu(id, nouveauNom, nouvelleDifficulte, nouvelleDureeMoyenneMatch);
+            if (jeuModifie != null) {
+                consoleLogger.afficherMessage("Jeu modifié avec succès.");
+            } else {
+                consoleLogger.afficherErreur("Erreur lors de la modification du jeu.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Jeu non trouvé.");
+        }
+    }
+
+    private void supprimerJeu() {
+        consoleLogger.afficherMessage("Suppression d'un jeu");
+        consoleLogger.afficherMessage("Entrez l'ID du jeu à supprimer:");
+        Long id = scanner.nextLong();
+        scanner.nextLine();
+
+        Optional<Jeu> jeuOptional = jeuController.obtenirJeu(id);
+        if (jeuOptional.isPresent()) {
+            consoleLogger.afficherMessage("Êtes-vous sûr de vouloir supprimer le jeu " + jeuOptional.get().getNom() + "? (O/N)");
+            String confirmation = scanner.nextLine();
+            if (confirmation.equalsIgnoreCase("O")) {
+                jeuController.supprimerJeu(id);
+                consoleLogger.afficherMessage("Jeu supprimé avec succès.");
+            } else {
+                consoleLogger.afficherMessage("Suppression annulée.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Jeu non trouvé.");
+        }
+    }
+
+    private void afficherJeu() {
+        consoleLogger.afficherMessage("Affichage d'un jeu");
+        consoleLogger.afficherMessage("Entrez l'ID du jeu à afficher:");
+        Long id = scanner.nextLong();
+        scanner.nextLine();
+
+        Optional<Jeu> jeuOptional = jeuController.obtenirJeu(id);
+        if (jeuOptional.isPresent()) {
+            Jeu jeu = jeuOptional.get();
+            consoleLogger.afficherMessage("Détails du jeu:");
+            consoleLogger.afficherMessage("ID: " + jeu.getId());
+            consoleLogger.afficherMessage("Nom: " + jeu.getNom());
+            consoleLogger.afficherMessage("Difficulté: " + jeu.getDifficulte());
+            consoleLogger.afficherMessage("Durée moyenne d'un match: " + jeu.getDureeMoyenneMatch() + " minutes");
+        } else {
+            consoleLogger.afficherErreur("Jeu non trouvé.");
+        }
+    }
+
+    private void afficherTousJeux() {
+        consoleLogger.afficherMessage("Liste de tous les jeux:");
+        List<Jeu> jeux = jeuController.obtenirTousJeux();
+        if (!jeux.isEmpty()) {
+            for (Jeu jeu : jeux) {
+                consoleLogger.afficherMessage("ID: " + jeu.getId() + ", Nom: " + jeu.getNom() + ", Difficulté: "
+                        + jeu.getDifficulte() + ", Durée moyenne: " + jeu.getDureeMoyenneMatch() + " minutes");
+            }
+        } else {
+            consoleLogger.afficherMessage("Aucun jeu trouvé.");
+        }
+    }
+
+    private void afficherMenuTournoi() {
         boolean continuer = true;
         while (continuer) {
-            System.out.println("\n=== Gestion des Tournois ===");
-            System.out.println("1. Créer un tournoi");
-            System.out.println("2. Modifier un tournoi");
-            System.out.println("3. Supprimer un tournoi");
-            System.out.println("4. Afficher un tournoi");
-            System.out.println("5. Afficher tous les tournois");
-            System.out.println("6. Ajouter une équipe à un tournoi");
-            System.out.println("7. Retirer une équipe d'un tournoi");
-            System.out.println("8. Calculer la durée estimée d'un tournoi");
-            System.out.println("9. Modifier le statut d'un tournoi");
-            System.out.println("0. Retour");
+            consoleLogger.afficherMessage("\n--- Menu Tournoi ---");
+            consoleLogger.afficherMessage("1. Créer un tournoi");
+            consoleLogger.afficherMessage("2. Modifier un tournoi");
+            consoleLogger.afficherMessage("3. Supprimer un tournoi");
+            consoleLogger.afficherMessage("4. Afficher un tournoi");
+            consoleLogger.afficherMessage("5. Afficher tous les tournois");
+            consoleLogger.afficherMessage("6. Ajouter une équipe à un tournoi");
+            consoleLogger.afficherMessage("7. Retirer une équipe d'un tournoi");
+            consoleLogger.afficherMessage("8. Calculer la durée estimée d'un tournoi");
+            consoleLogger.afficherMessage("9. Modifier le statut d'un tournoi");
+            consoleLogger.afficherMessage("0. Retour au menu principal");
+            consoleLogger.afficherMessage("Choisissez une option:");
 
-            try {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
+            int choix = scanner.nextInt();
+            scanner.nextLine();
 
-                switch (choix) {
-                    case 1:
-                        creerTournoi();
-                        break;
-                    case 2:
-                        modifierTournoi();
-                        break;
-                    case 3:
-                        supprimerTournoi();
-                        break;
-                    case 4:
-                        afficherTournoi();
-                        break;
-                    case 5:
-                        afficherTousTournois();
-                        break;
-                    case 6:
-                        ajouterEquipeATournoi();
-                        break;
-                    case 7:
-                        retirerEquipeDeTournoi();
-                        break;
-                    case 8:
-                        calculerDureeEstimeeTournoi();
-                        break;
-                    case 9:
-                        modifierStatutTournoi();
-                        break;
-                    case 0:
-                        continuer = false;
-                        break;
-                    default:
-                        System.out.println("Option invalide");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Erreur dans le menu tournois", e);
-                scanner.nextLine();
-                System.out.println("Erreur de saisie. Veuillez réessayer.");
+            switch (choix) {
+                case 1:
+                    creerTournoi();
+                    break;
+                case 2:
+                    modifierTournoi();
+                    break;
+                case 3:
+                    supprimerTournoi();
+                    break;
+                case 4:
+                    afficherTournoi();
+                    break;
+                case 5:
+                    afficherTousTournois();
+                    break;
+                case 6:
+                    ajouterEquipeATournoi();
+                    break;
+                case 7:
+                    retirerEquipeDeTournoi();
+                    break;
+                case 8:
+                    calculerDureeEstimeeTournoi();
+                    break;
+                case 9:
+                    modifierStatutTournoi();
+                    break;
+                case 0:
+                    continuer = false;
+                    break;
+                default:
+                    consoleLogger.afficherErreur("Option invalide. Veuillez réessayer.");
             }
         }
     }
 
     private void creerTournoi() {
-        try {
-            System.out.println("Entrez le titre du tournoi:");
-            String titre = scanner.nextLine();
-            if (!ValidationUtil.validerNom(titre)) {
-                System.out.println("Titre invalide.");
-                return;
+        String titre;
+        Long jeuId;
+        LocalDate dateDebut, dateFin;
+        int nombreSpectateurs, dureeMoyenneMatch, tempsCeremonie, tempsPauseEntreMatchs;
+
+        do {
+            consoleLogger.afficherMessage("Entrez le titre du tournoi (3-100 caractères):");
+            titre = scanner.nextLine();
+            if (!ValidationUtil.validerTitreTournoi(titre)) {
+                consoleLogger.afficherErreur("Titre invalide. Veuillez réessayer.");
             }
+        } while (!ValidationUtil.validerTitreTournoi(titre));
 
-            System.out.println("Entrez l'ID du jeu:");
-            Long jeuId = ValidationUtil.validerLong(scanner.nextLine());
-
-            System.out.println("Entrez la date de début (YYYY-MM-DD):");
-            LocalDate dateDebut = ValidationUtil.validerDateFormat(scanner.nextLine());
-
-            System.out.println("Entrez la date de fin (YYYY-MM-DD):");
-            LocalDate dateFin = ValidationUtil.validerDateFormat(scanner.nextLine());
-
-            if (!ValidationUtil.validerDates(dateDebut, dateFin)) {
-                System.out.println("Les dates sont invalides. La date de fin doit être après la date de début.");
-                return;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du jeu pour ce tournoi:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
             }
-
-            System.out.println("Entrez le nombre de spectateurs:");
-            int nombreSpectateurs = ValidationUtil.validerNombrePositif(scanner.nextLine());
-
-            System.out.println("Entrez la durée moyenne des matchs (en minutes):");
-            int dureeMoyenneMatch = ValidationUtil.validerNombrePositif(scanner.nextLine());
-
-            System.out.println("Entrez le temps de pause entre les matchs (en minutes):");
-            int tempsPauseEntreMatchs = ValidationUtil.validerNombrePositif(scanner.nextLine());
-
-            System.out.println("Entrez le nombre maximum d'équipes:");
-            int nombreMaxEquipes = ValidationUtil.validerNombrePositif(scanner.nextLine());
-
-            Tournoi nouveauTournoi = tournoiController.create(
-                titre, jeuId, dateDebut, dateFin,
-                nombreSpectateurs, dureeMoyenneMatch, 
-                tempsPauseEntreMatchs, nombreMaxEquipes
-            );
-
-            if (nouveauTournoi != null) {
-                System.out.println("Tournoi créé avec succès. ID: " + nouveauTournoi.getId());
-            } else {
-                System.out.println("Échec de la création du tournoi.");
+            jeuId = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(jeuId)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
             }
+        } while (!ValidationUtil.validerId(jeuId));
 
-        } catch (IllegalArgumentException e) {
-            System.out.println("Erreur de validation: " + e.getMessage());
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la création du tournoi", e);
-            System.out.println("Une erreur est survenue lors de la création du tournoi.");
+        do {
+            consoleLogger.afficherMessage("Entrez la date de début (format: dd/MM/yyyy):");
+            dateDebut = ValidationUtil.validerFormatDate(scanner.nextLine());
+            if (dateDebut == null) {
+                consoleLogger.afficherErreur("Date invalide. Veuillez réessayer.");
+            }
+        } while (dateDebut == null);
+
+        do {
+            consoleLogger.afficherMessage("Entrez la date de fin (format: dd/MM/yyyy):");
+            dateFin = ValidationUtil.validerFormatDate(scanner.nextLine());
+            if (dateFin == null || !ValidationUtil.validerDates(dateDebut, dateFin)) {
+                consoleLogger.afficherErreur("Date invalide ou antérieure à la date de début. Veuillez réessayer.");
+            }
+        } while (dateFin == null || !ValidationUtil.validerDates(dateDebut, dateFin));
+
+        do {
+            consoleLogger.afficherMessage("Entrez le nombre de spectateurs attendus (0-100000):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            nombreSpectateurs = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerNombreSpectateurs(nombreSpectateurs)) {
+                consoleLogger.afficherErreur("Nombre de spectateurs invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerNombreSpectateurs(nombreSpectateurs));
+
+        do {
+            consoleLogger.afficherMessage("Entrez la durée moyenne d'un match (en minutes, max 360):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            dureeMoyenneMatch = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerDuree(dureeMoyenneMatch)) {
+                consoleLogger.afficherErreur("Durée moyenne invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerDuree(dureeMoyenneMatch));
+
+        do {
+            consoleLogger.afficherMessage("Entrez le temps de cérémonie (en minutes, max 360):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tempsCeremonie = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerDuree(tempsCeremonie)) {
+                consoleLogger.afficherErreur("Temps de cérémonie invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerDuree(tempsCeremonie));
+
+        do {
+            consoleLogger.afficherMessage("Entrez le temps de pause entre les matchs (en minutes, max 360):");
+            while (!scanner.hasNextInt()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tempsPauseEntreMatchs = scanner.nextInt();
+            scanner.nextLine();
+            if (!ValidationUtil.validerDuree(tempsPauseEntreMatchs)) {
+                consoleLogger.afficherErreur("Temps de pause invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerDuree(tempsPauseEntreMatchs));
+
+        Tournoi nouveauTournoi = tournoiController.creerTournoi(titre, jeuId, dateDebut, dateFin, nombreSpectateurs,
+                dureeMoyenneMatch, tempsCeremonie, tempsPauseEntreMatchs);
+        if (nouveauTournoi != null) {
+            consoleLogger.afficherMessage("Tournoi créé avec succès. ID: " + nouveauTournoi.getId());
+        } else {
+            consoleLogger.afficherErreur("Erreur lors de la création du tournoi.");
         }
     }
 
     private void modifierTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi à modifier:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        Long id;
+        String nouveauTitre;
+        LocalDate nouvelleDateDebut, nouvelleDateFin;
+        int nouveauNombreSpectateurs;
 
-            System.out.println("Entrez le nouveau titre:");
-            String nouveauTitre = scanner.nextLine();
-
-            System.out.println("Entrez la nouvelle date de début (format: dd/MM/yyyy):");
-            String dateDebutStr = scanner.nextLine();
-            LocalDate nouvelleDateDebut = LocalDate.parse(dateDebutStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-
-            System.out.println("Entrez la nouvelle date de fin (format: dd/MM/yyyy):");
-            String dateFinStr = scanner.nextLine();
-            LocalDate nouvelleDateFin = LocalDate.parse(dateFinStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-
-            System.out.println("Entrez le nouveau nombre de spectateurs:");
-            int nouveauNombreSpectateurs = scanner.nextInt();
-            scanner.nextLine();
-
-            Tournoi tournoiModifie = tournoiController.modifierTournoi(id, nouveauTitre, nouvelleDateDebut, 
-                nouvelleDateFin, nouveauNombreSpectateurs);
-            
-            if (tournoiModifie != null) {
-                System.out.println("Tournoi modifié avec succès.");
-            } else {
-                System.out.println("Tournoi non trouvé.");
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du tournoi à modifier:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la modification du tournoi", e);
-            System.out.println("Erreur lors de la modification du tournoi.");
+            id = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(id)) {
+                consoleLogger.afficherErreur("ID invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(id));
+
+        Optional<Tournoi> tournoiOptional = tournoiController.obtenirTournoi(id);
+        if (tournoiOptional.isPresent()) {
+            Tournoi tournoi = tournoiOptional.get();
+
+            do {
+                consoleLogger.afficherMessage("Entrez le nouveau titre (ou appuyez sur Entrée pour garder l'ancien):");
+                nouveauTitre = scanner.nextLine();
+                if (!nouveauTitre.isEmpty() && !ValidationUtil.validerTitreTournoi(nouveauTitre)) {
+                    consoleLogger.afficherErreur("Titre invalide. Veuillez réessayer.");
+                    continue;
+                }
+                if (nouveauTitre.isEmpty()) {
+                    nouveauTitre = tournoi.getTitre();
+                }
+                break;
+            } while (true);
+
+            do {
+                consoleLogger.afficherMessage("Entrez la nouvelle date de début (format: dd/MM/yyyy) ou appuyez sur Entrée pour garder l'ancienne:");
+                String dateDebutStr = scanner.nextLine();
+                if (dateDebutStr.isEmpty()) {
+                    nouvelleDateDebut = tournoi.getDateDebut();
+                    break;
+                }
+                nouvelleDateDebut = ValidationUtil.validerFormatDate(dateDebutStr);
+                if (nouvelleDateDebut == null) {
+                    consoleLogger.afficherErreur("Date invalide. Veuillez réessayer.");
+                    continue;
+                }
+                break;
+            } while (true);
+
+            do {
+                consoleLogger.afficherMessage("Entrez la nouvelle date de fin (format: dd/MM/yyyy) ou appuyez sur Entrée pour garder l'ancienne:");
+                String dateFinStr = scanner.nextLine();
+                if (dateFinStr.isEmpty()) {
+                    nouvelleDateFin = tournoi.getDateFin();
+                    break;
+                }
+                nouvelleDateFin = ValidationUtil.validerFormatDate(dateFinStr);
+                if (nouvelleDateFin == null || !ValidationUtil.validerDates(nouvelleDateDebut, nouvelleDateFin)) {
+                    consoleLogger.afficherErreur("Date invalide ou antérieure à la date de début. Veuillez réessayer.");
+                    continue;
+                }
+                break;
+            } while (true);
+
+            do {
+                consoleLogger.afficherMessage("Entrez le nouveau nombre de spectateurs (0-100000) ou -1 pour garder l'ancien:");
+                while (!scanner.hasNextInt()) {
+                    consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                    scanner.next();
+                }
+                nouveauNombreSpectateurs = scanner.nextInt();
+                scanner.nextLine();
+                if (nouveauNombreSpectateurs == -1) {
+                    nouveauNombreSpectateurs = tournoi.getNombreSpectateurs();
+                    break;
+                }
+                if (!ValidationUtil.validerNombreSpectateurs(nouveauNombreSpectateurs)) {
+                    consoleLogger.afficherErreur("Nombre de spectateurs invalide. Veuillez réessayer.");
+                    continue;
+                }
+                break;
+            } while (true);
+
+            Tournoi tournoiModifie = tournoiController.modifierTournoi(id, nouveauTitre, nouvelleDateDebut,
+                    nouvelleDateFin, nouveauNombreSpectateurs);
+            if (tournoiModifie != null) {
+                consoleLogger.afficherMessage("Tournoi modifié avec succès.");
+            } else {
+                consoleLogger.afficherErreur("Erreur lors de la modification du tournoi.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Tournoi non trouvé.");
         }
     }
 
     private void supprimerTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi à supprimer:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        consoleLogger.afficherMessage("Suppression d'un tournoi");
+        consoleLogger.afficherMessage("Entrez l'ID du tournoi à supprimer:");
+        Long id = scanner.nextLong();
+        scanner.nextLine();
 
-            tournoiController.supprimerTournoi(id);
-            System.out.println("Tournoi supprimé avec succès.");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la suppression du tournoi", e);
-            System.out.println("Erreur lors de la suppression du tournoi.");
+        Optional<Tournoi> tournoiOptional = tournoiController.obtenirTournoi(id);
+        if (tournoiOptional.isPresent()) {
+            consoleLogger.afficherMessage("Êtes-vous sûr de vouloir supprimer le tournoi " + tournoiOptional.get().getTitre() + "? (O/N)");
+            String confirmation = scanner.nextLine();
+            if (confirmation.equalsIgnoreCase("O")) {
+                tournoiController.supprimerTournoi(id);
+                consoleLogger.afficherMessage("Tournoi supprimé avec succès.");
+            } else {
+                consoleLogger.afficherMessage("Suppression annulée.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Tournoi non trouvé.");
         }
     }
 
     private void afficherTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi à afficher:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
+        consoleLogger.afficherMessage("Affichage d'un tournoi");
+        consoleLogger.afficherMessage("Entrez l'ID du tournoi à afficher:");
+        Long id = scanner.nextLong();
+        scanner.nextLine();
 
-            Optional<Tournoi> tournoiOpt = tournoiController.obtenirTournoi(id);
-            if (tournoiOpt.isPresent()) {
-                Tournoi tournoi = tournoiOpt.get();
-                System.out.println("ID: " + tournoi.getId());
-                System.out.println("Titre: " + tournoi.getTitre());
-                System.out.println("Jeu: " + tournoi.getJeu().getNom());
-                System.out.println("Date de début: " + tournoi.getDateDebut());
-                System.out.println("Date de fin: " + tournoi.getDateFin());
-                System.out.println("Nombre de spectateurs: " + tournoi.getNombreSpectateurs());
-                System.out.println("Statut: " + tournoi.getStatut());
-                System.out.println("Équipes participantes:");
-                for (Equipe equipe : tournoi.getEquipes()) {
-                    System.out.println("- " + equipe.getNom());
-                }
-            } else {
-                System.out.println("Tournoi non trouvé.");
+        Optional<Tournoi> tournoiOptional = tournoiController.obtenirTournoi(id);
+        if (tournoiOptional.isPresent()) {
+            Tournoi tournoi = tournoiOptional.get();
+            consoleLogger.afficherMessage("Détails du tournoi:");
+            consoleLogger.afficherMessage("ID: " + tournoi.getId());
+            consoleLogger.afficherMessage("Titre: " + tournoi.getTitre());
+            consoleLogger.afficherMessage("Jeu: " + tournoi.getJeu().getNom());
+            consoleLogger.afficherMessage("Date de début: " + tournoi.getDateDebut());
+            consoleLogger.afficherMessage("Date de fin: " + tournoi.getDateFin());
+            consoleLogger.afficherMessage("Nombre de spectateurs: " + tournoi.getNombreSpectateurs());
+            consoleLogger.afficherMessage("Statut: " + tournoi.getStatut());
+            consoleLogger.afficherMessage("Équipes participantes:");
+            for (Equipe equipe : tournoi.getEquipes()) {
+                consoleLogger.afficherMessage("- " + equipe.getNom());
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage du tournoi", e);
-            System.out.println("Erreur lors de l'affichage du tournoi.");
+        } else {
+            consoleLogger.afficherErreur("Tournoi non trouvé.");
         }
     }
 
     private void afficherTousTournois() {
-        try {
-            List<Tournoi> tournois = tournoiController.obtenirTousTournois();
-            if (!tournois.isEmpty()) {
-                System.out.println("Liste des tournois:");
-                for (Tournoi tournoi : tournois) {
-                    System.out.println("ID: " + tournoi.getId() + 
-                        ", Titre: " + tournoi.getTitre() + 
-                        ", Statut: " + tournoi.getStatut());
-                }
-            } else {
-                System.out.println("Aucun tournoi trouvé.");
+        consoleLogger.afficherMessage("Liste de tous les tournois:");
+        List<Tournoi> tournois = tournoiController.obtenirTousTournois();
+        if (!tournois.isEmpty()) {
+            for (Tournoi tournoi : tournois) {
+                String jeuNom = tournoi.getJeu() != null ? tournoi.getJeu().getNom() : "N/A";
+                consoleLogger.afficherMessage("ID: " + tournoi.getId() + ", Titre: " + tournoi.getTitre() + ", Jeu: "
+                        + jeuNom + ", Statut: " + tournoi.getStatut());
             }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage des tournois", e);
-            System.out.println("Erreur lors de l'affichage des tournois.");
+        } else {
+            consoleLogger.afficherMessage("Aucun tournoi trouvé.");
         }
     }
 
     private void ajouterEquipeATournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi:");
-            Long tournoiId = scanner.nextLong();
-            System.out.println("Entrez l'ID de l'équipe à ajouter:");
-            Long equipeId = scanner.nextLong();
-            scanner.nextLine();
+        Long tournoiId;
+        Long equipeId;
 
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du tournoi:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tournoiId = scanner.nextLong();
+            if (!ValidationUtil.validerId(tournoiId)) {
+                consoleLogger.afficherErreur("ID du tournoi invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(tournoiId));
+
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID de l'équipe à ajouter:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            equipeId = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(equipeId)) {
+                consoleLogger.afficherErreur("ID de l'équipe invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(equipeId));
+
+        try {
             tournoiController.ajouterEquipeATournoi(tournoiId, equipeId);
-            System.out.println("Équipe ajoutée au tournoi avec succès.");
+            consoleLogger.afficherMessage("Équipe ajoutée au tournoi avec succès.");
         } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'ajout de l'équipe au tournoi", e);
-            System.out.println("Erreur lors de l'ajout de l'équipe au tournoi.");
+            consoleLogger.afficherErreur("Erreur lors de l'ajout de l'équipe au tournoi: " + e.getMessage());
         }
     }
 
     private void retirerEquipeDeTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi:");
-            Long tournoiId = scanner.nextLong();
-            System.out.println("Entrez l'ID de l'équipe à retirer:");
-            Long equipeId = scanner.nextLong();
-            scanner.nextLine();
+        Long tournoiId;
+        Long equipeId;
 
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du tournoi:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tournoiId = scanner.nextLong();
+            if (!ValidationUtil.validerId(tournoiId)) {
+                consoleLogger.afficherErreur("ID du tournoi invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(tournoiId));
+
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID de l'équipe à retirer:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            equipeId = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(equipeId)) {
+                consoleLogger.afficherErreur("ID de l'équipe invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(equipeId));
+
+        try {
             tournoiController.retirerEquipeDeTournoi(tournoiId, equipeId);
-            System.out.println("Équipe retirée du tournoi avec succès.");
+            consoleLogger.afficherMessage("Équipe retirée du tournoi avec succès.");
         } catch (Exception e) {
-            LOGGER.error("Erreur lors du retrait de l'équipe du tournoi", e);
-            System.out.println("Erreur lors du retrait de l'équipe du tournoi.");
+            consoleLogger.afficherErreur("Erreur lors du retrait de l'équipe du tournoi: " + e.getMessage());
         }
     }
 
     private void calculerDureeEstimeeTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi:");
-            Long tournoiId = scanner.nextLong();
+        Long tournoiId;
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du tournoi:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tournoiId = scanner.nextLong();
             scanner.nextLine();
+            if (!ValidationUtil.validerId(tournoiId)) {
+                consoleLogger.afficherErreur("ID du tournoi invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(tournoiId));
 
-            int dureeEstimee = tournoiController.calculerDureeEstimee(tournoiId);
-            System.out.println("Durée estimée du tournoi: " + dureeEstimee + " minutes");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors du calcul de la durée estimée", e);
-            System.out.println("Erreur lors du calcul de la durée estimée.");
+        int dureeEstimee = tournoiController.obtenirDureeEstimeeTournoi(tournoiId);
+        if (dureeEstimee > 0) {
+            Optional<Tournoi> tournoiOptional = tournoiController.obtenirTournoi(tournoiId);
+            if (tournoiOptional.isPresent()) {
+                Tournoi tournoi = tournoiOptional.get();
+                consoleLogger.afficherMessage("La durée estimée du tournoi " + tournoi.getTitre() + 
+                    " est de " + tournoi.getDureeEstimee() + " minutes.");
+            } else {
+                consoleLogger.afficherErreur("Tournoi non trouvé après le calcul.");
+            }
+        } else {
+            consoleLogger.afficherErreur("Impossible de calculer la durée estimée du tournoi.");
         }
     }
 
     private void modifierStatutTournoi() {
-        try {
-            System.out.println("Entrez l'ID du tournoi:");
-            Long tournoiId = scanner.nextLong();
-            scanner.nextLine();
+        Long tournoiId;
 
-            System.out.println("Choisissez le nouveau statut:");
-            System.out.println("1. PLANIFIE");
-            System.out.println("2. EN_COURS");
-            System.out.println("3. TERMINE");
-            System.out.println("4. ANNULE");
+        do {
+            consoleLogger.afficherMessage("Entrez l'ID du tournoi:");
+            while (!scanner.hasNextLong()) {
+                consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                scanner.next();
+            }
+            tournoiId = scanner.nextLong();
+            scanner.nextLine();
+            if (!ValidationUtil.validerId(tournoiId)) {
+                consoleLogger.afficherErreur("ID du tournoi invalide. Veuillez réessayer.");
+            }
+        } while (!ValidationUtil.validerId(tournoiId));
+
+        Optional<Tournoi> tournoiOptional = tournoiController.obtenirTournoi(tournoiId);
+        if (tournoiOptional.isPresent()) {
+            consoleLogger.afficherMessage("Choisissez le nouveau statut:");
+            consoleLogger.afficherMessage("1. PLANIFIE");
+            consoleLogger.afficherMessage("2. EN_COURS");
+            consoleLogger.afficherMessage("3. TERMINE");
+            consoleLogger.afficherMessage("4. ANNULE");
             
-            int choix = scanner.nextInt();
-            scanner.nextLine();
+            int choix;
+            do {
+                while (!scanner.hasNextInt()) {
+                    consoleLogger.afficherErreur("Veuillez entrer un nombre valide.");
+                    scanner.next();
+                }
+                choix = scanner.nextInt();
+                scanner.nextLine();
+                if (choix < 1 || choix > 4) {
+                    consoleLogger.afficherErreur("Choix invalide. Veuillez entrer un nombre entre 1 et 4.");
+                }
+            } while (choix < 1 || choix > 4);
 
-            Status nouveauStatut; // Changé de TournoiStatus à Status
+            TournoiStatus nouveauStatut;
             switch (choix) {
                 case 1:
-                    nouveauStatut = Status.PLANIFIE;
+                    nouveauStatut = TournoiStatus.PLANIFIE;
                     break;
                 case 2:
-                    nouveauStatut = Status.EN_COURS;
+                    nouveauStatut = TournoiStatus.EN_COURS;
                     break;
                 case 3:
-                    nouveauStatut = Status.TERMINE;
+                    nouveauStatut = TournoiStatus.TERMINE;
                     break;
                 case 4:
-                    nouveauStatut = Status.ANNULE;
+                    nouveauStatut = TournoiStatus.ANNULE;
                     break;
                 default:
-                    System.out.println("Choix invalide");
-                    return;
+                    throw new IllegalStateException("Valeur inattendue: " + choix);
             }
 
             tournoiController.modifierStatutTournoi(tournoiId, nouveauStatut);
-            System.out.println("Statut du tournoi modifié avec succès.");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la modification du statut", e);
-            System.out.println("Erreur lors de la modification du statut.");
-        }
-    }
-
-    private void gererMenuJeux() {
-        boolean continuer = true;
-        while (continuer) {
-            System.out.println("\n=== Gestion des Jeux ===");
-            System.out.println("1. Ajouter un jeu");
-            System.out.println("2. Modifier un jeu");
-            System.out.println("3. Supprimer un jeu");
-            System.out.println("4. Afficher un jeu");
-            System.out.println("5. Afficher tous les jeux");
-            System.out.println("0. Retour");
-
-            try {
-                int choix = scanner.nextInt();
-                scanner.nextLine();
-
-                switch (choix) {
-                    case 1:
-                        ajouterJeu();
-                        break;
-                    case 2:
-                        modifierJeu();
-                        break;
-                    case 3:
-                        supprimerJeu();
-                        break;
-                    case 4:
-                        afficherJeu();
-                        break;
-                    case 5:
-                        afficherTousJeux();
-                        break;
-                    case 0:
-                        continuer = false;
-                        break;
-                    default:
-                        System.out.println("Option invalide");
-                }
-            } catch (Exception e) {
-                LOGGER.error("Erreur dans le menu jeux", e);
-                scanner.nextLine();
-                System.out.println("Erreur de saisie. Veuillez réessayer.");
-            }
-        }
-    }
-
-    private void ajouterJeu() {
-        try {
-            System.out.println("Entrez le nom du jeu:");
-            String nom = scanner.nextLine();
-            
-            System.out.println("Entrez le nombre minimum de joueurs:");
-            int minJoueurs = scanner.nextInt();
-            
-            System.out.println("Entrez le nombre maximum de joueurs:");
-            int maxJoueurs = scanner.nextInt();
-            scanner.nextLine();
-
-            Jeu nouveauJeu = jeuController.creerJeu(nom, minJoueurs, maxJoueurs);
-            if (nouveauJeu != null) {
-                System.out.println("Jeu ajouté avec succès. ID: " + nouveauJeu.getId());
-            } else {
-                System.out.println("Échec de l'ajout du jeu.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'ajout du jeu", e);
-            System.out.println("Erreur lors de l'ajout du jeu.");
-        }
-    }
-
-    private void modifierJeu() {
-        try {
-            System.out.println("Entrez l'ID du jeu à modifier:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
-
-            System.out.println("Entrez le nouveau nom:");
-            String nouveauNom = scanner.nextLine();
-
-            System.out.println("Entrez le nouveau nombre minimum de joueurs:");
-            int minJoueurs = scanner.nextInt();
-
-            System.out.println("Entrez le nouveau nombre maximum de joueurs:");
-            int maxJoueurs = scanner.nextInt();
-            scanner.nextLine();
-
-            Jeu jeuModifie = jeuController.modifierJeu(id, nouveauNom, minJoueurs, maxJoueurs);
-            if (jeuModifie != null) {
-                System.out.println("Jeu modifié avec succès.");
-            } else {
-                System.out.println("Jeu non trouvé.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la modification du jeu", e);
-            System.out.println("Erreur lors de la modification du jeu.");
-        }
-    }
-
-    private void supprimerJeu() {
-        try {
-            System.out.println("Entrez l'ID du jeu à supprimer:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
-
-            jeuController.supprimerJeu(id);
-            System.out.println("Jeu supprimé avec succès.");
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de la suppression du jeu", e);
-            System.out.println("Erreur lors de la suppression du jeu.");
-        }
-    }
-
-    private void afficherJeu() {
-        try {
-            System.out.println("Entrez l'ID du jeu à afficher:");
-            Long id = scanner.nextLong();
-            scanner.nextLine();
-
-            Optional<Jeu> jeuOpt = jeuController.obtenirJeu(id);
-            if (jeuOpt.isPresent()) {
-                Jeu jeu = jeuOpt.get();
-                System.out.println("ID: " + jeu.getId());
-                System.out.println("Nom: " + jeu.getNom());
-            } else {
-                System.out.println("Jeu non trouvé.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage du jeu", e);
-            System.out.println("Erreur lors de l'affichage du jeu.");
-        }
-    }
-
-    private void afficherTousJeux() {
-        try {
-            List<Jeu> jeux = jeuController.obtenirTousJeux();
-            if (!jeux.isEmpty()) {
-                System.out.println("Liste des jeux:");
-                for (Jeu jeu : jeux) {
-                    System.out.println("ID: " + jeu.getId() + ", Nom: " + jeu.getNom());
-                }
-            } else {
-                System.out.println("Aucun jeu trouvé.");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors de l'affichage des jeux", e);
-            System.out.println("Erreur lors de l'affichage des jeux.");
-        }
-    }
-
-    public static void main(String[] args) {
-        try {
-            ApplicationContext context = new ClassPathXmlApplicationContext("applicationContext.xml");
-
-            JoueurController joueurController = context.getBean(JoueurController.class);
-            EquipeController equipeController = context.getBean(EquipeController.class);
-            TournoiController tournoiController = context.getBean(TournoiController.class);
-            JeuController jeuController = context.getBean(JeuController.class);
-
-            ConsoleUi consoleUi = new ConsoleUi(
-                joueurController,
-                equipeController,
-                tournoiController,
-                jeuController
-            );
-
-            consoleUi.afficherMenuPrincipal();
-
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors du démarrage de l'application", e);
-            System.out.println("Une erreur est survenue lors du démarrage de l'application.");
+            consoleLogger.afficherMessage("Statut du tournoi modifié avec succès.");
+        } else {
+            consoleLogger.afficherErreur("Tournoi non trouvé.");
         }
     }
 }

@@ -24,7 +24,7 @@
     <!-- EntityManagerFactory Configuration -->
     <bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
         <property name="dataSource" ref="dataSource"/>
-        <property name="packagesToScan" value="org.gestion_tournois.models"/>
+        <property name="packagesToScan" value="org.gestion_tournois.model"/>
         <property name="jpaVendorAdapter">
             <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter"/>
         </property>
@@ -44,44 +44,57 @@
     <!-- DAOs -->
     <bean id="joueurDao" class="org.gestion_tournois.repositories.impl.JoueurDaoImpl"/>
     <bean id="equipeDao" class="org.gestion_tournois.repositories.impl.EquipeDaoImpl"/>
-    <bean id="tournoiDao" class="org.gestion_tournois.repositories.impl.TournoiDaoImpl"/>
+    <bean id="tournoiDaoImpl" class="org.gestion_tournois.repositories.impl.TournoiDaoImpl"/>
+    <bean id="tournoiDao" class="org.gestion_tournois.repositories.impl.TournoiDaoExtension">
+        <constructor-arg ref="tournoiDaoImpl"/>
+    </bean>
     <bean id="jeuDao" class="org.gestion_tournois.repositories.impl.JeuDaoImpl"/>
 
     <!-- Services -->
-    <bean id="joueurService" class="org.gestion_tournois.services.JoueurService">
+    <bean id="joueurService" class="org.gestion_tournois.service.impl.JoueurServiceImpl">
         <constructor-arg ref="joueurDao"/>
     </bean>
-    <bean id="equipeService" class="org.gestion_tournois.services.EquipeService">
+    <bean id="equipeService" class="org.gestion_tournois.service.impl.EquipeServiceImpl">
         <constructor-arg ref="equipeDao"/>
         <constructor-arg ref="joueurDao"/>
     </bean>
-    <bean id="tournoiService" class="org.gestion_tournois.services.TournoiService">
+    <bean id="tournoiService" class="org.gestion_tournois.service.impl.TournoiServiceImpl">
         <constructor-arg ref="tournoiDao"/>
         <constructor-arg ref="equipeDao"/>
     </bean>
-    <bean id="jeuService" class="org.gestion_tournois.services.JeuService">
+    <bean id="jeuService" class="org.gestion_tournois.service.impl.JeuServiceImpl">
         <constructor-arg ref="jeuDao"/>
     </bean>
 
     <!-- Controllers -->
-    <bean id="joueurController" class="org.gestion_tournois.controllers.JoueurController">
+    <bean id="joueurController" class="org.gestion_tournois.controller.JoueurController">
         <constructor-arg ref="joueurService"/>
     </bean>
-    <bean id="equipeController" class="org.gestion_tournois.controllers.EquipeController">
+    <bean id="equipeController" class="org.gestion_tournois.controller.EquipeController">
         <constructor-arg ref="equipeService"/>
     </bean>
-    <bean id="tournoiController" class="org.gestion_tournois.controllers.TournoiController">
+    <bean id="tournoiController" class="org.gestion_tournois.controller.TournoiController">
         <constructor-arg ref="tournoiService"/>
     </bean>
-    <bean id="jeuController" class="org.gestion_tournois.controllers.JeuController">
+    <bean id="jeuController" class="org.gestion_tournois.controller.JeuController">
         <constructor-arg ref="jeuService"/>
     </bean>
 
-    <bean id="consoleLogger" class="org.gestion_tournois.utils.MessageLogger"/>
+    <!-- Console Logger -->
+    <bean id="consoleLogger" class="org.gestion_tournois.util.ConsoleLogger"/>
+
+    <!-- Console (remplace MainMenu) -->
+    <bean id="console" class="org.gestion_tournois.presentation.ConsoleUi">
+        <constructor-arg ref="joueurController"/>
+        <constructor-arg ref="equipeController"/>
+        <constructor-arg ref="tournoiController"/>
+        <constructor-arg ref="jeuController"/>
+        <constructor-arg ref="consoleLogger"/>
+    </bean>
 
     <!-- H2 Web Server -->
     <bean id="h2WebServer" class="org.h2.tools.Server" factory-method="createWebServer" init-method="start" destroy-method="stop">
-        <constructor-arg value="-web,-webAllowOthers,-webPort,8085"/>
+        <constructor-arg value="-web,-webAllowOthers,-webPort,8082" />
     </bean>
 
 </beans>

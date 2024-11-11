@@ -1,13 +1,13 @@
 package org.gestion_tournois.repositories.impl;
 
 import org.gestion_tournois.repositories.interfaces.JeuDao;
-import org.gestion_tournois.models.Jeu;
+import org.gestion_tournois.model.Jeu;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
+import javax.persistence.TypedQuery;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,42 +19,39 @@ public class JeuDaoImpl implements JeuDao {
     private EntityManager entityManager;
 
     @Override
-    public Jeu create(Jeu jeu) {
+    public Jeu creer(Jeu jeu) {
         entityManager.persist(jeu);
         LOGGER.info("Jeu créé avec l'ID: {}", jeu.getId());
         return jeu;
     }
 
     @Override
-    public Jeu update(Jeu jeu) {
-        Jeu updatedJeu = entityManager.merge(jeu);
-        LOGGER.info("Jeu mis à jour avec l'ID: {}", updatedJeu.getId());
-        return updatedJeu;
+    public Jeu modifier(Jeu jeu) {
+        Jeu jeuModifie = entityManager.merge(jeu);
+        LOGGER.info("Jeu modifié avec l'ID: {}", jeuModifie.getId());
+        return jeuModifie;
     }
 
     @Override
-    public void delete(Long id) {
+    public void supprimer(Long id) {
         Jeu jeu = entityManager.find(Jeu.class, id);
         if (jeu != null) {
             entityManager.remove(jeu);
             LOGGER.info("Jeu supprimé avec l'ID: {}", id);
         } else {
-            LOGGER.warn("Aucun jeu trouvé pour suppression avec l'ID: {}", id);
+            LOGGER.warn("Tentative de suppression d'un jeu inexistant avec l'ID: {}", id);
         }
     }
 
     @Override
-    public Optional<Jeu> searchById(Long id) {
+    public Optional<Jeu> trouverParId(Long id) {
         Jeu jeu = entityManager.find(Jeu.class, id);
-        LOGGER.info(jeu != null ? "Jeu trouvé avec l'ID: {}" : "Aucun jeu trouvé avec l'ID: {}", id);
         return Optional.ofNullable(jeu);
     }
 
     @Override
-    public List<Jeu> getAll() {
-        Query query = entityManager.createQuery("SELECT j FROM Jeu j");
-        List<Jeu> jeux = query.getResultList();
-        LOGGER.info("Nombre de jeux récupérés: {}", jeux.size());
-        return jeux;
+    public List<Jeu> trouverTous() {
+        TypedQuery<Jeu> query = entityManager.createQuery("SELECT j FROM Jeu j", Jeu.class);
+        return query.getResultList();
     }
 }

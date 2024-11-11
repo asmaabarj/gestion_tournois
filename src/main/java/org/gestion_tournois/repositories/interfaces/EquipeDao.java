@@ -1,26 +1,24 @@
 package org.gestion_tournois.repositories.interfaces;
 
-import org.gestion_tournois.models.Equipe;
-import org.gestion_tournois.models.Joueur;
-
+import org.gestion_tournois.model.Equipe;
+import org.gestion_tournois.model.Joueur;
 import java.util.List;
 import java.util.Optional;
 
 public interface EquipeDao {
+    Equipe creer(Equipe equipe);
 
-    Equipe create(Equipe equipe);
+    Equipe modifier(Equipe equipe);
 
-    Equipe update(Equipe equipe);
+    void supprimer(Long id);
 
-    void delete(Long id);
+    Optional<Equipe> trouverParId(Long id);
 
-    Optional<Equipe> searchById(Long id);
+    List<Equipe> trouverTous();
 
-    List<Equipe> getAll();
+    void ajouterJoueur(Long equipeId, Joueur joueur);
 
-    void addJoueur(Long equipeId, Joueur joueur);
+    void retirerJoueur(Long equipeId, Joueur joueur);
 
-    void deleteJoueur(Long equipeId, Joueur joueur);
-
-    List<Equipe> searchByTournoi(Long tournoiId);
+    List<Equipe> trouverParTournoi(Long tournoiId);
 }

@@ -1,10 +1,10 @@
 package org.gestion_tournois.repositories.impl;
 
 import org.gestion_tournois.repositories.interfaces.TournoiDao;
-import org.gestion_tournois.models.Tournoi;
-import org.gestion_tournois.models.Equipe;
-import org.gestion_tournois.models.Jeu;
-import org.gestion_tournois.models.enums.Status;
+import org.gestion_tournois.model.Tournoi;
+import org.gestion_tournois.model.Equipe;
+import org.gestion_tournois.model.Jeu;
+import org.gestion_tournois.model.enums.TournoiStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,69 +27,67 @@ public class TournoiDaoExtension implements TournoiDao {
     }
 
     @Override
-    public Tournoi create(Tournoi tournoi) {
-        return tournoiDaoImpl.create(tournoi);
+    public Tournoi creer(Tournoi tournoi) {
+        return tournoiDaoImpl.creer(tournoi);
     }
 
     @Override
-    public Tournoi update(Tournoi tournoi) {
-        return tournoiDaoImpl.update(tournoi);
+    public Tournoi modifier(Tournoi tournoi) {
+        return tournoiDaoImpl.modifier(tournoi);
     }
 
     @Override
-    public void delete(Long id) {
-        tournoiDaoImpl.delete(id);
+    public void supprimer(Long id) {
+        tournoiDaoImpl.supprimer(id);
     }
 
     @Override
-    public Optional<Tournoi> searchById(Long id) {
-        return tournoiDaoImpl.searchById(id);
+    public Optional<Tournoi> trouverParId(Long id) {
+        return tournoiDaoImpl.trouverParId(id);
     }
 
     @Override
-    public List<Tournoi> getAll() {
-        return tournoiDaoImpl.getAll();
+    public List<Tournoi> trouverTous() {
+        return tournoiDaoImpl.trouverTous();
     }
 
     @Override
-    public void addEquipe(Long tournoiId, Equipe equipe) {
-        tournoiDaoImpl.addEquipe(tournoiId, equipe);
+    public void ajouterEquipe(Long tournoiId, Equipe equipe) {
+        tournoiDaoImpl.ajouterEquipe(tournoiId, equipe);
     }
 
     @Override
-    public void deleteEquipe(Long tournoiId, Equipe equipe) {
-        tournoiDaoImpl.deleteEquipe(tournoiId, equipe);
+    public void retirerEquipe(Long tournoiId, Equipe equipe) {
+        tournoiDaoImpl.retirerEquipe(tournoiId, equipe);
     }
 
     @Override
-    public Optional<Tournoi> searchByIdWithEquipes(Long id) {
-        return tournoiDaoImpl.searchByIdWithEquipes(id);
+    public Optional<Tournoi> trouverParIdAvecEquipes(Long id) {
+        return tournoiDaoImpl.trouverParIdAvecEquipes(id);
     }
 
     @Override
-    public int calculatedureeEstimeeTournoi(Long tournoiId) {
-        try {
-            Tournoi tournoi = entityManager.find(Tournoi.class, tournoiId);
-            if (tournoi != null) {
-                int nombreEquipes = tournoi.getEquipes().size();
-                Jeu jeu = tournoi.getJeu();
-                int dureeMoyenneMatch = jeu.getDureeMoyenneMatch();
-                int difficulteJeu = jeu.getDifficulte();
+    public int calculerdureeEstimeeTournoi(Long tournoiId) {
+        Tournoi tournoi = entityManager.find(Tournoi.class, tournoiId);
+        if (tournoi != null) {
+            int nombreEquipes = tournoi.getEquipes().size();
+            Jeu jeu = tournoi.getJeu();
+            int dureeMoyenneMatch = jeu.getDureeMoyenneMatch();
+            int difficulteJeu = jeu.getDifficulte();
+            int tempsPauseEntreMatchs = tournoi.getTempsPauseEntreMatchs();
+            int tempsCeremonie = tournoi.getTempsCeremonie();
 
-                int tempsPauseEntreMatchs = tournoi.getTempsPauseEntreMatchs();
-                int dureeEstimee = (nombreEquipes * dureeMoyenneMatch * difficulteJeu) + tempsPauseEntreMatchs; // Ajustement avec la difficulté
-                tournoi.setDureeEstimee(dureeEstimee);
-                entityManager.merge(tournoi);
-                return dureeEstimee;
-            }
-        } catch (Exception e) {
-            LOGGER.error("Erreur lors du calcul de la durée estimée du tournoi: ", e);
+            int dureeEstimee = (nombreEquipes * dureeMoyenneMatch * difficulteJeu) + tempsPauseEntreMatchs
+                    + tempsCeremonie;
+            tournoi.setDureeEstimee(dureeEstimee);
+            entityManager.merge(tournoi);
+            return dureeEstimee;
         }
         return 0;
     }
 
     @Override
-    public void updateStatut(Long tournoiId, Status nouveauStatut) {
-        tournoiDaoImpl.updateStatut(tournoiId, nouveauStatut);
+    public void modifierStatut(Long tournoiId, TournoiStatus nouveauStatut) {
+        tournoiDaoImpl.modifierStatut(tournoiId, nouveauStatut);
     }
 }
